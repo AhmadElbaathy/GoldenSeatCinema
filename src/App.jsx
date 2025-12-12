@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Keycloak from 'keycloak-js';
-import { User, Calendar, MapPin, CreditCard, Ticket, LogOut, ChevronLeft, Search, Star, Clock, Trash2, List, CheckCircle, ChevronRight } from 'lucide-react';
+import { User, UserPlus, Calendar, MapPin, CreditCard, Ticket, LogOut, ChevronLeft, Search, Star, Clock, Trash2, List, CheckCircle, ChevronRight } from 'lucide-react';
 
 // --- 1. KEYCLOAK CONFIGURATION ---
 const client = new Keycloak({
@@ -21,7 +21,7 @@ const SHOWTIMES = ["10:30 AM", "1:15 PM", "4:45 PM", "8:00 PM"];
 
 // --- 3. COMPONENTS ---
 
-const LoginScreen = ({ onLogin }) => (
+const LoginScreen = ({ onLogin, onRegister }) => (
   <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
     <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700 text-center">
       <div className="mb-6 flex justify-center">
@@ -32,9 +32,17 @@ const LoginScreen = ({ onLogin }) => (
       <h1 className="text-3xl font-bold text-white mb-2 font-mono">GOLDEN SEAT</h1>
       <p className="text-slate-400 mb-8">Enterprise Booking System</p>
       
-      <button onClick={onLogin} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 group">
-        <User className="w-5 h-5 group-hover:scale-110 transition-transform" /> Login with SSO (Keycloak)
-      </button>
+      <div className="space-y-3">
+        <button onClick={onLogin} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 group">
+            <User className="w-5 h-5 group-hover:scale-110 transition-transform" /> Login
+        </button>
+        
+        {/* NEW SIGN UP BUTTON */}
+        <button onClick={onRegister} className="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 border border-slate-600 group">
+            <UserPlus className="w-5 h-5 group-hover:scale-110 transition-transform text-cyan-400" /> Create Account
+        </button>
+      </div>
+
     </div>
   </div>
 );
@@ -162,7 +170,6 @@ const Checkout = ({ movie, seats, time, onComplete, onBack }) => {
   );
 };
 
-// --- TICKET VIEW (NO VALID BLOCK, BLACK ORDER ID) ---
 const TicketView = ({ movie, seats, time, orderId, onReset }) => {
   const safeSeats = Array.isArray(seats) ? seats : [];
   const movieTitle = movie ? movie.title : "Unknown Movie";
@@ -284,6 +291,8 @@ const App = () => {
   }, []);
 
   const handleLogin = () => client.login();
+  // NEW: Directly triggers registration flow
+  const handleRegister = () => client.login({ action: 'register' });
   const handleLogout = () => { client.logout(); setUser(null); setView('MOVIES'); };
   const handleSelectMovie = (movie) => { setSelectedMovie(movie); setView('DETAILS'); };
   
@@ -349,7 +358,7 @@ const App = () => {
   const handleSeatConfirm = (seats) => { setSelectedSeats(seats); setView('CHECKOUT'); };
   const resetFlow = () => { setView('MOVIES'); setSelectedMovie(null); setSelectedSeats([]); };
 
-  if (!user) return <LoginScreen onLogin={handleLogin} />;
+  if (!user) return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} />;
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 font-sans selection:bg-cyan-500 selection:text-white">
@@ -373,7 +382,7 @@ const App = () => {
       <main className="max-w-6xl mx-auto px-4 py-8">
         {view === 'MOVIES' && (
           <div className="animate-in fade-in duration-500">
-            {/* UPDATED SEARCH BAR */}
+            {/* SEARCH BAR (CONNECTED TO STATE) */}
             <div className="mb-8 relative">
                 <Search className="absolute left-4 top-3.5 text-slate-500 w-5 h-5" />
                 <input 
@@ -381,13 +390,13 @@ const App = () => {
                     placeholder="Search movies..." 
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-colors"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)} // <--- Binding state
+                    onChange={(e) => setSearchTerm(e.target.value)} 
                 />
             </div>
             
             <h2 className="text-xl font-bold text-white mb-6">Now Showing</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* FILTERING MOVIES */}
+              {/* FILTERING LOGIC */}
               {MOVIES.filter(m => m.title.toLowerCase().includes(searchTerm.toLowerCase())).map(movie => (
                 <MovieCard key={movie.id} movie={movie} onSelect={handleSelectMovie} />
               ))}
